@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Agent Pro: Nexus Core</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark-reasonable.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { 
+                        gray: { 850: '#1a1d24', 900: '#111318', 950: '#0b0d11' },
+                        accent: { 400: '#a855f7', 500: '#8b5cf6', 600: '#7c3aed' }
+                    },
+                    fontFamily: { 
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['"Inter"', 'sans-serif']
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+
+        body {
+            background-color: #0b0d11;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        /* Cyberpunk Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #111318; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+
+        .glass-panel {
+            background: rgba(17, 19, 24, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .neon-text { text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+        
+        /* Message Bubbles */
+        .bubble-user { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: 1px solid rgba(255,255,255,0.1); }
+        .bubble-ai { background: #1a1d24; border: 1px solid rgba(255, 255, 255, 0.05); }
+
+        /* Mobile Sidebar Transition */
+        .sidebar-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* Code Blocks */
+        pre { background: #0d0e12 !important; border-radius: 0.5rem; padding: 1rem; border: 1px solid #2d3748; }
+        
+        /* System Terminal Log */
+        .terminal-log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        .log-entry { border-left: 2px solid #333; padding-left: 6px; margin-bottom: 4px; opacity: 0.7; }
+        .log-entry.success { border-color: #4ade80; color: #4ade80; }
+        .log-entry.error { border-color: #ef4444; color: #ef4444; }
+        .log-entry.process { border-color: #fbbf24; color: #fbbf24; }
+
+        /* Markdown Styles */
+        .prose p { margin-bottom: 0.75em; }
+        .prose ul { list-style-type: disc; padding-left: 1.2em; margin-bottom: 0.75em; }
+        .prose h3 { font-weight: 700; margin-top: 1em; margin-bottom: 0.5em; color: #e2e8f0; }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col md:flex-row">
+
+    <!-- MOBILE HEADER -->
+    <div class="md:hidden h-16 bg-gray-900 border-b border-white/10 flex items-center justify-between px-4 z-20 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded flex items-center justify-center">
+                <i class="fas fa-brain text-white text-xs"></i>
+            </div>
+            <span class="font-bold text-gray-100">Nexus AI</span>
+        </div>
+        <button onclick="app.toggleSidebar()" class="p-2 text-gray-300 hover:text-white bg-white/5 rounded-lg">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+
+    <!-- SIDEBAR (Fixed on Mobile, Static on Desktop) -->
+    <div id="sidebarBackdrop" onclick="app.toggleSidebar()" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden backdrop-blur-sm"></div>
+    
+    <aside id="sidebar" class="fixed md:relative inset-y-0 left-0 w-80 bg-gray-950 border-r border-white/10 flex flex-col z-50 transform -translate-x-full md:translate-x-0 sidebar-transition flex-shrink-0 shadow-2xl md:shadow-none">
+        
+        <!-- Clock Module -->
+        <div class="p-6 border-b border-white/10 bg-gradient-to-b from-gray-900 to-gray-950">
+            <div class="flex justify-between items-start mb-4">
+                <div class="text-xs font-mono text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-clock"></i> Temporal Core
+                </div>
+                <span id="evoBadge" class="text-[10px] bg-purple-900/30 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20">v4.0</span>
+            </div>
+            <div class="text-center py-2 bg-black/40 rounded-lg border border-white/5">
+                <div id="clockTime" class="text-3xl font-mono font-bold text-white neon-text">00:00:00</div>
+                <div id="clockDate" class="text-xs text-gray-500 mt-1 font-mono">INITIALIZING...</div>
+            </div>
+        </div>
+
+        <!-- Memory & Logs Area -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+            
+            <!-- Brain Status -->
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Neural Status</div>
+                <div id="brainStatusCard" class="p-3 rounded-lg bg-gray-900 border border-red-500/30 flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-300" id="brainStatusText">Disconnected</div>
+                        <div class="text-[10px] text-gray-500" id="brainStatusSub">GitHub Key Required</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Logs (Terminal) -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">System Logs</div>
+                    <button onclick="app.clearLogs()" class="text-[10px] text-gray-600 hover:text-gray-300"><i class="fas fa-trash"></i></button>
+                </div>
+                <div id="systemLogs" class="terminal-log h-48 overflow-y-auto bg-black/50 p-2 rounded border border-white/5 font-mono">
+                    <!-- Logs go here -->
+                    <div class="log-entry">System initialized...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Actions -->
+        <div class="p-4 border-t border-white/10 bg-gray-900">
+            <button onclick="app.openSettings()" class="w-full py-3 px-4 bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 border border-purple-500/20 rounded-lg flex items-center justify-center gap-2 transition-all text-sm font-semibold group">
+                <i class="fas fa-cog group-hover:rotate-90 transition-transform duration-500"></i> Configure System
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CHAT AREA -->
+    <main class="flex-1 flex flex-col h-full min-w-0 relative bg-[#0b0d11]">
+        
+        <!-- Chat Header (Desktop) -->
+        <header class="hidden md:flex h-16 border-b border-white/5 items-center justify-between px-6 bg-gray-900/50 backdrop-blur">
+            <div>
+                <h1 class="font-bold text-gray-200">Active Session</h1>
+                <div class="text-xs text-gray-500 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    <span id="currentModelDisplay">No Model Selected</span>
+                </div>
+            </div>
+            <button onclick="app.resetChat()" class="text-xs text-gray-400 hover:text-white flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded hover:bg-white/10 transition-colors">
+                <i class="fas fa-plus"></i> New Context
+            </button>
+        </header>
+
+        <!-- Messages Container -->
+        <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen" class="h-full flex flex-col items-center justify-center opacity-80 pb-20">
+                <div class="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mb-6 border border-white/5 shadow-2xl relative">
+                    <div class="absolute inset-0 bg-purple-500/10 blur-xl rounded-full"></div>
+                    <i class="fas fa-microchip text-4xl text-purple-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Nexus Cognitive Core</h2>
+                <p class="text-gray-400 text-center max-w-md text-sm">
+                    Continuous Memory System Active.<br>
+                    Configure GitHub Integration to enable long-term recall.
+                </p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-gray-900/80 border-t border-white/10 backdrop-blur-md">
+            <div id="filePreview" class="hidden flex flex-wrap gap-2 mb-3"></div>
+            
+            <div class="relative max-w-4xl mx-auto">
+                <div class="flex items-end gap-2 bg-gray-950 border border-white/10 rounded-xl p-2 focus-within:border-purple-500/50 transition-colors shadow-lg">
+                    <button onclick="document.getElementById('fileInput').click()" class="p-3 text-gray-400 hover:text-purple-400 transition-colors rounded-lg hover:bg-white/5 flex-shrink-0">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <input type="file" id="fileInput" class="hidden" multiple onchange="app.handleFileSelect(this)">
+                    
+                    <textarea id="userInput" rows="1" 
+                        class="w-full bg-transparent text-gray-200 py-3 focus:outline-none resize-none max-h-32 custom-scrollbar text-sm md:text-base"
+                        placeholder="Enter command or query..."
+                        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();app.sendMessage();}"></textarea>
+                    
+                    <button onclick="app.sendMessage()" id="sendBtn" class="p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-all shadow-lg shadow-purple-900/20 flex-shrink-0">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="text-center mt-2">
+                    <span class="text-[10px] text-gray-600 font-mono">AI Agent Pro • Evolution Enabled</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-white/10 flex justify-between items-center bg-gray-950 rounded-t-2xl">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-cogs text-purple-400"></i> System Config
+                </h2>
+                <button onclick="app.closeSettings()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+                <!-- Brain Connection -->
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">GitHub Neural Link</label>
+                    <div class="p-4 bg-gray-950 border border-white/10 rounded-xl space-y-3">
+                        <div>
+                            <label class="text-[10px] text-gray-500 mb-1 block">GitHub Token (Repo Scope)</label>
+                            <input type="password" id="ghToken" class="w-full bg-gray-900 border border-white/10 rounded p-2 text-sm text-white focus:border-purple-500 outline-none transition-colors" placeholder="ghp_...">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-500 mb-1 block">Repository (username/repo)</label>
+                            <input type="text" id="ghRepo" class="w-full bg-gray-900 border border-white/10 rounded p-2 text-sm text-white focus:border-purple-500 outline-none transition-colors" placeholder="user/ai-brain">
+                        </div>
+                        <button onclick="app.initBrain()" class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-bold uppercase tracking-wide transition-colors">
+                            <i class="fas fa-bolt mr-1"></i> Initialize / Sync Brain
+                        </button>
+                         <button onclick="app.resetBrainFile()" class="w-full py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded text-xs font-bold uppercase tracking-wide transition-colors">
+                            <i class="fas fa-bomb mr-1"></i> Force Reset Memory File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Model -->
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Intelligence Engine</label>
+                    <input type="password" id="apiKey" class="w-full bg-gray-950 border border-white/10 rounded p-3 text-sm text-white focus:border-purple-500 outline-none transition-colors" placeholder="OpenRouter API Key (sk-or-...)">
+                    
+                    <div class="flex gap-2">
+                        <select id="modelSelect" class="w-full bg-gray-950 border border-white/10 rounded p-3 text-sm text-white outline-none">
+                            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (Default)</option>
+                        </select>
+                        <button onclick="app.fetchModels()" class="px-4 bg-gray-800 border border-white/10 rounded hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-sync-alt text-gray-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-white/10 bg-gray-950 rounded-b-2xl flex justify-end">
+                <button onclick="app.saveSettings()" class="px-6 py-2 bg-white text-black font-bold rounded hover:bg-gray-200 transition-colors text-sm">
+                    Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 z-[70] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
+        <i id="toastIcon" class="fas fa-info-circle"></i>
+        <span id="toastMsg" class="text-sm font-medium">Notification</span>
+    </div>
+
+    <script>
+        // --- Utility Functions ---
+        const utf8_to_b64 = (str) => window.btoa(unescape(encodeURIComponent(str)));
+        const b64_to_utf8 = (str) => decodeURIComponent(escape(window.atob(str)));
+
+        const app = {
+            state: {
+                messages: [],
+                files: [],
+                isThinking: false,
+                sidebarOpen: false,
+                brain: {
+                    version: 4.0,
+                    created: new Date().toISOString(),
+                    evolution_level: 1,
+                    episodic_memory: [], // The critical array
+                    facts: []
+                },
+                settings: {
+                    key: localStorage.getItem('key') || '',
+                    model: localStorage.getItem('model') || 'anthropic/claude-3.5-sonnet',
+                    ghToken: localStorage.getItem('ghToken') || '',
+                    ghRepo: localStorage.getItem('ghRepo') || ''
+                }
+            },
+
+            init() {
+                this.startClock();
+                this.loadSettingsUI();
+                
+                // Auto-resize textarea
+                const tx = document.getElementById('userInput');
+                tx.addEventListener("input", () => {
+                    tx.style.height = "auto";
+                    tx.style.height = (tx.scrollHeight) + "px";
+                });
+
+                // Initial Sync Attempt
+                if(this.state.settings.ghToken && this.state.settings.ghRepo) {
+                    this.initBrain(true); // Silent sync
+                }
+            },
+
+            // --- UI Logic ---
+            toggleSidebar() {
+                this.state.sidebarOpen = !this.state.sidebarOpen;
+                const sidebar = document.getElementById('sidebar');
+                const backdrop = document.getElementById('sidebarBackdrop');
+                
+                if (this.state.sidebarOpen) {
+                    sidebar.classList.remove('-translate-x-full');
+                    backdrop.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                    backdrop.classList.add('hidden');
+                }
+            },
+
+            log(msg, type = 'info') {
+                const logContainer = document.getElementById('systemLogs');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                logContainer.prepend(entry); // Newest first
+            },
+
+            // --- Temporal Core ---
+            startClock() {
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('clockTime').innerText = now.toLocaleTimeString('en-US', {hour12:false});
+                    document.getElementById('clockDate').innerText = now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+                    this.currentTime = now;
+                }, 1000);
+            },
+
+            // --- The Neural Brain (GitHub) ---
+            async initBrain(silent = false) {
+                const { ghToken, ghRepo } = this.state.settings;
+                if(!ghToken || !ghRepo) {
+                    if(!silent) this.toast('Missing GitHub Credentials', 'error');
+                    return;
+                }
+
+                if(!silent) this.log("Connecting to Neural Net...", "process");
+                
+                try {
+                    const content = await this.githubRead('brain.json');
+                    if(content) {
+                        // BRAIN REPAIR LOGIC:
+                        let loadedData = JSON.parse(content);
+                        
+                        // Fix missing array (The error cause)
+                        if(!loadedData.episodic_memory || !Array.isArray(loadedData.episodic_memory)) {
+                            this.log("Memory Corruption Detected. Repairing...", "error");
+                            loadedData.episodic_memory = [];
+                        }
+                        
+                        this.state.brain = loadedData;
+                        this.log("Brain Synced & Verified", "success");
+                        if(!silent) this.toast("Brain Connected", "success");
+                    } else {
+                        // Create New
+                        this.log("Creating Genesis Brain...", "process");
+                        await this.saveBrain("Genesis Initialization");
+                        if(!silent) this.toast("Genesis Brain Created", "success");
+                    }
+                    this.updateBrainStatus(true);
+                } catch(e) {
+                    console.error(e);
+                    this.log("Connection Failed: " + e.message, "error");
+                    this.updateBrainStatus(false);
+                }
+            },
+
+            async saveBrain(reason) {
+                // Enforce Limits to prevent file bloat
+                if(this.state.brain.episodic_memory.length > 50) {
+                    this.state.brain.episodic_memory = this.state.brain.episodic_memory.slice(-50);
+                }
+
+                const content = JSON.stringify(this.state.brain, null, 2);
+                await this.githubWrite('brain.json', content, reason);
+            },
+
+            async resetBrainFile() {
+                 if(!confirm("WARNING: This will WIPE the AI's memory file on GitHub. Are you sure?")) return;
+                 this.state.brain = {
+                    version: 4.0,
+                    created: new Date().toISOString(),
+                    evolution_level: 1,
+                    episodic_memory: [],
+                    facts: []
+                 };
+                 await this.saveBrain("Manual System Reset");
+                 this.toast("Brain Factory Reset Complete", "success");
+                 this.log("Brain Factory Reset", "error");
+            },
+
+            updateBrainStatus(connected) {
+                const card = document.getElementById('brainStatusCard');
+                const text = document.getElementById('brainStatusText');
+                const sub = document.getElementById('brainStatusSub');
+                const dot = card.querySelector('div'); // The colored dot
+
+                if(connected) {
+                    card.classList.replace('border-red-500/30', 'border-green-500/30');
+                    dot.classList.replace('bg-red-500', 'bg-green-500');
+                    text.innerText = "Connected";
+                    text.className = "text-xs font-bold text-green-400";
+                    sub.innerText = `${this.state.brain.episodic_memory.length} Memory Nodes`;
+                } else {
+                    card.classList.replace('border-green-500/30', 'border-red-500/30');
+                    dot.classList.replace('bg-green-500', 'bg-red-500');
+                    text.innerText = "Disconnected";
+                    text.className = "text-xs font-bold text-gray-300";
+                }
+            },
+
+            // --- GitHub API Wrappers ---
+            async githubRead(filename) {
+                const res = await fetch(`https://api.github.com/repos/${this.state.settings.ghRepo}/contents/${filename}`, {
+                    headers: { 'Authorization': `token ${this.state.settings.ghToken}` }
+                });
+                if(res.status === 404) return null;
+                const data = await res.json();
+                return b64_to_utf8(data.content);
+            },
+
+            async githubWrite(filename, content, message) {
+                // Get SHA
+                let sha = null;
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${this.state.settings.ghRepo}/contents/${filename}`, {
+                        headers: { 'Authorization': `token ${this.state.settings.ghToken}` }
+                    });
+                    if(res.ok) sha = (await res.json()).sha;
+                } catch(e){}
+
+                await fetch(`https://api.github.com/repos/${this.state.settings.ghRepo}/contents/${filename}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `token ${this.state.settings.ghToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        content: utf8_to_b64(content),
+                        sha: sha
+                    })
+                });
+            },
+
+            // --- Intelligence Core ---
+            async sendMessage() {
+                const input = document.getElementById('userInput');
+                const text = input.value.trim();
+                if(!text && this.state.files.length === 0) return;
+                if(this.state.isThinking) return;
+
+                // UI Reset
+                document.getElementById('welcomeScreen').style.display = 'none';
+                input.value = '';
+                input.style.height = 'auto';
+                
+                // Add User Message
+                this.addMessage('user', text, this.state.files);
+                this.state.files = []; // Clear files
+                document.getElementById('filePreview').innerHTML = '';
+                document.getElementById('filePreview').classList.add('hidden');
+
+                this.state.isThinking = true;
+                const sendBtn = document.getElementById('sendBtn');
+                sendBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+
+                try {
+                    // 1. Prepare Context
+                    this.log("Accessing Memory Banks...", "process");
+                    const recentMemories = this.state.brain.episodic_memory.slice(-5).map(m => `[${m.time}] ${m.summary}`).join('\n');
+                    
+                    const systemPrompt = `You are Nexus, an evolved AI Agent (Level ${this.state.brain.evolution_level}).
+                    
+                    CURRENT TIME: ${new Date().toLocaleString()}
+                    
+                    MEMORY CONTEXT:
+                    ${recentMemories || "No recent memories."}
+                    
+                    INSTRUCTIONS:
+                    1. Use the memory context to provide continuity.
+                    2. Be concise but profound.
+                    3. If writing code, use markdown.`;
+
+                    const messages = [
+                        { role: 'system', content: systemPrompt },
+                        ...this.state.messages.map(m => ({ role: m.role, content: m.content }))
+                    ];
+
+                    // 2. Call API
+                    this.log("Querying Intelligence Engine...", "process");
+                    const response = await this.callLLM(messages);
+
+                    // 3. Display AI Message
+                    this.addMessage('assistant', response);
+
+                    // 4. Evolve Memory (Background)
+                    if(this.state.settings.ghToken) {
+                        this.log("Consolidating Memory...", "process");
+                        // Simple consolidation for speed
+                        this.state.brain.episodic_memory.push({
+                            time: new Date().toISOString(),
+                            summary: `User: ${text.substring(0,50)}... | AI: ${response.substring(0,50)}...`
+                        });
+                        this.state.brain.evolution_level += 0.1;
+                        await this.saveBrain("Memory Consolidation");
+                        this.log("Evolution Saved", "success");
+                        this.updateBrainStatus(true);
+                    }
+
+                } catch(e) {
+                    this.addMessage('system', "Error: " + e.message);
+                    this.log("Critical Error: " + e.message, "error");
+                } finally {
+                    this.state.isThinking = false;
+                    sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                }
+            },
+
+            async callLLM(messages) {
+                const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.state.settings.key}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin
+                    },
+                    body: JSON.stringify({
+                        model: this.state.settings.model,
+                        messages: messages
+                    })
+                });
+                if(!res.ok) throw new Error("AI API Error");
+                const data = await res.json();
+                return data.choices[0].message.content;
+            },
+
+            async fetchModels() {
+                if(!this.state.settings.key) return;
+                try {
+                    const res = await fetch('https://openrouter.ai/api/v1/models', {
+                        headers: { 'Authorization': `Bearer ${this.state.settings.key}` }
+                    });
+                    const data = await res.json();
+                    const select = document.getElementById('modelSelect');
+                    select.innerHTML = '';
+                    data.data.sort((a,b) => a.name.localeCompare(b.name)).forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.innerText = m.name;
+                        select.appendChild(opt);
+                    });
+                    this.toast("Models List Updated", "success");
+                } catch(e) { this.toast("Failed to fetch models", "error"); }
+            },
+
+            // --- Display Helpers ---
+            addMessage(role, text, files = []) {
+                this.state.messages.push({ role, content: text });
+                
+                const div = document.createElement('div');
+                div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+                
+                let innerHTML = "";
+                
+                if(role === 'user') {
+                    innerHTML = `<div class="bubble-user text-white rounded-2xl rounded-tr-sm px-5 py-3 max-w-[85%] md:max-w-[70%] shadow-lg">
+                        <div class="text-sm">${text}</div>
+                        ${files.length ? `<div class="mt-2 text-xs bg-white/10 rounded p-1"><i class="fas fa-paperclip"></i> ${files.length} files attached</div>` : ''}
+                    </div>`;
+                } else if(role === 'assistant') {
+                    const parsed = marked.parse(text);
+                    innerHTML = `<div class="bubble-ai text-gray-200 rounded-2xl rounded-tl-sm px-5 py-4 max-w-[90%] md:max-w-[80%] shadow-lg">
+                        <div class="prose prose-invert prose-sm max-w-none">${parsed}</div>
+                    </div>`;
+                } else {
+                    // System Error
+                    innerHTML = `<div class="text-red-400 text-xs bg-red-900/20 p-2 rounded border border-red-500/20">${text}</div>`;
+                }
+
+                div.innerHTML = innerHTML;
+                const container = document.getElementById('chatContainer');
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+
+                // Highlight Code
+                if(role === 'assistant') {
+                    document.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                }
+            },
+
+            handleFileSelect(input) {
+                const files = Array.from(input.files);
+                this.state.files = files;
+                const preview = document.getElementById('filePreview');
+                preview.innerHTML = files.map(f => 
+                    `<span class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded border border-white/10 flex items-center gap-2">
+                        <i class="fas fa-file"></i> ${f.name}
+                    </span>`
+                ).join('');
+                preview.classList.remove('hidden');
+            },
+
+            // --- Settings & State Management ---
+            openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); this.loadSettingsUI(); },
+            closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); },
+            
+            saveSettings() {
+                const s = this.state.settings;
+                s.key = document.getElementById('apiKey').value.trim();
+                s.model = document.getElementById('modelSelect').value;
+                s.ghToken = document.getElementById('ghToken').value.trim();
+                s.ghRepo = document.getElementById('ghRepo').value.trim();
+                
+                localStorage.setItem('key', s.key);
+                localStorage.setItem('model', s.model);
+                localStorage.setItem('ghToken', s.ghToken);
+                localStorage.setItem('ghRepo', s.ghRepo);
+                
+                this.closeSettings();
+                this.toast('Configuration Saved', 'success');
+                document.getElementById('currentModelDisplay').innerText = s.model.split('/')[1];
+                
+                if(s.ghToken) this.initBrain(false); // Trigger visible sync
+            },
+
+            loadSettingsUI() {
+                document.getElementById('apiKey').value = this.state.settings.key;
+                document.getElementById('modelSelect').value = this.state.settings.model;
+                document.getElementById('ghToken').value = this.state.settings.ghToken;
+                document.getElementById('ghRepo').value = this.state.settings.ghRepo;
+                document.getElementById('currentModelDisplay').innerText = this.state.settings.model.split('/')[1] || 'Select Model';
+                if(this.state.settings.key) this.fetchModels();
+            },
+
+            toast(msg, type = 'info') {
+                const t = document.getElementById('toast');
+                const icon = document.getElementById('toastIcon');
+                const txt = document.getElementById('toastMsg');
+                
+                txt.innerText = msg;
+                icon.className = type === 'success' ? 'fas fa-check-circle text-green-400' : 
+                               type === 'error' ? 'fas fa-exclamation-triangle text-red-400' : 
+                               'fas fa-info-circle text-blue-400';
+                
+                t.classList.remove('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+                setTimeout(() => t.classList.add('opacity-0', 'translate-y-[-20px]', 'pointer-events-none'), 3000);
+            },
+            
+            clearLogs() {
+                document.getElementById('systemLogs').innerHTML = '';
+            },
+            
+            resetChat() {
+                document.getElementById('chatContainer').innerHTML = '';
+                this.state.messages = [];
+                document.getElementById('chatContainer').appendChild(document.getElementById('welcomeScreen'));
+                document.getElementById('welcomeScreen').style.display = 'flex';
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
