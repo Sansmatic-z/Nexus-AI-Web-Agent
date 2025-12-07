@@ -1,16 +1,82 @@
+===============================================================
+📜 Nexus v4 - License Agreement
+Created by: Raj Mitra (2025)
+===============================================================
+
+This project is offered under a **Dual License Model**:
+
+1. GNU Affero General Public License v3.0 (AGPL-3.0)
+2. Optional Commercial License
+
+---------------------------------------------------------------
+Part 1 — Open Source License (AGPL-3.0)
+---------------------------------------------------------------
+
 Copyright (c) 2025 Raj Mitra
 
-This project is licensed under the GNU Affero General Public License (AGPL-3.0).
+This software is licensed under the GNU Affero General Public License v3.0.
 
-You are free to use, modify, distribute, and run this software publicly only if:
-- The source code remains open
-- All modifications remain open
-- Proper credit is given to the original author: "Created by Raj Mitra"
-- A link to the original repository is included
+You are permitted to:
 
-Commercial or paid usage requires a separate commercial license.
+✔ Use the software for personal, educational, and research purposes  
+✔ Modify the source code  
+✔ Share or fork the project  
+✔ Host public instances ONLY if you also share your full modified source code
 
-To obtain commercial rights, contact:
-📩 Email: [your email or GitHub contact link]
+Under the following conditions:
 
-Full AGPL Terms: https://www.gnu.org/licenses/agpl-3.0.en.html
+- You **must credit the original author: "Created by Raj Mitra"**
+- You **must include a link to the original repository**
+- Any modified version of this software **must also be released under AGPL-3.0**
+- If you run this software on a server for others to use,
+  you **must make your entire source code available to the public**
+
+The full AGPL-3.0 text is available here:
+https://www.gnu.org/licenses/agpl-3.0.en.html
+
+---------------------------------------------------------------
+Part 2 — Commercial License
+---------------------------------------------------------------
+
+Commercial usage of this software (including SaaS platforms,
+paid apps, closed-source deployments, proprietary forks,
+enterprise products, or revenue-generating services)
+**requires a paid commercial license.**
+
+Commercial rights include:
+
+✔ Permission to use without open-sourcing your modifications  
+✔ Private forks  
+✔ Integration into closed or paid systems  
+✔ Long-term product use  
+✔ Priority rights and support (optional)
+
+To obtain a commercial license, contact:
+
+📩 Email: [Pending — GitHub contact for now]  
+🔗 GitHub: https://github.com/YOUR_USERNAME
+
+---------------------------------------------------------------
+Liability & Warranty Disclaimer
+---------------------------------------------------------------
+
+This software is provided "AS IS" without warranty of any kind.
+
+The author is not liable for:
+
+- Loss of data
+- Damages arising from use or misuse
+- Security vulnerabilities
+- AI-generated content
+
+---------------------------------------------------------------
+Summary
+---------------------------------------------------------------
+
+💠 Free for personal, educational, and open-source use.  
+💠 If you modify and publish or host it — you must share your source.  
+💠 If you want to use it commercially — get a license.
+
+===============================================================
+END OF LICENSE
+===============================================================
